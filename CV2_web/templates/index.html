@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>攝影機測試</title>
+
+<style>
+
+body{
+    background:#111;
+    color:white;
+    text-align:center;
+    font-family:sans-serif;
+}
+
+video{
+    width:640px;
+    height:480px;
+    border-radius:10px;
+    border:4px solid white;
+    margin-top:20px;
+}
+
+button{
+    padding:15px 30px;
+    font-size:18px;
+    margin-top:20px;
+    cursor:pointer;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>攝影機權限測試</h1>
+
+<p id="status">尚未啟動</p>
+
+<video id="camera" autoplay playsinline></video>
+
+<br>
+
+<button onclick="startCamera()">啟動攝影機</button>
+
+<script src="{{ url_for('static', filename='camera.js') }}"></script>
+
+</body>
+</html>

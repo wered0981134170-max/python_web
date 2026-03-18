@@ -1,0 +1,340 @@
+body{
+    background:#111;
+    color:white;
+    font-family:"Microsoft JhengHei";
+    text-align:center;
+}
+
+.container{
+    display:flex;
+    justify-content:center;
+    gap:40px;
+    margin-top:30px;
+}
+
+.video-area img{
+    width:500px;
+    border-radius:10px;
+}
+
+.quiz-area{
+    width:400px;
+}
+
+/* ★ 改為單列排列（行列式） */
+.options{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    margin-top:20px;
+}
+
+.option{
+    font-size:24px;
+    padding:16px 20px;
+    border:none;
+    border-radius:10px;
+    background:#3498db;
+    color:white;
+    cursor:pointer;
+    transition:0.2s;
+    text-align:left;    /* 編號靠左對齊更好看 */
+}
+
+.option:hover{
+    background:#2980b9;
+}
+
+.option.active{
+    background:#f39c12;
+    transform:scale(1.04);
+}
+
+button{
+    font-size:24px;
+    padding:16px 20px;
+    border:none;
+    border-radius:10px;
+    background:#3498db;
+    color:white;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#2980b9;
+}
+
+#result{
+    font-size:50px;
+    margin-top:20px;
+    font-weight:bold;
+}
+
+.correct{
+    color:#2ecc71;
+}
+
+.wrong{
+    color:#e74c3c;
+}
+
+/* ============ 答題進度條 ============ */
+#progressArea{
+    width: 700px;
+    margin: 16px auto 0;
+}
+
+.progress-label{
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: #aaa;
+    margin-bottom: 6px;
+}
+
+.progress-track{
+    background: #333;
+    border-radius: 99px;
+    height: 10px;
+    overflow: hidden;
+}
+
+.progress-bar{
+    height: 100%;
+    width: 10%;           /* JS 動態更新 */
+    background: linear-gradient(90deg, #3498db, #2ecc71);
+    border-radius: 99px;
+    transition: width 0.4s ease;
+}
+
+/* ============ 手勢穩定進度環 ============ */
+.video-area{
+    position: relative;
+    display: inline-block;
+}
+
+.stability-ring{
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 60px;
+    height: 60px;
+}
+
+.stability-ring svg{
+    width: 60px;
+    height: 60px;
+    transform: rotate(-90deg);  /* 從頂部開始畫 */
+}
+
+.ring-bg{
+    fill: none;
+    stroke: #333;
+    stroke-width: 5;
+}
+
+.ring-arc{
+    fill: none;
+    stroke: #f39c12;
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-dasharray: 157;      /* 2π×25 ≈ 157 */
+    stroke-dashoffset: 157;     /* JS 動態更新 */
+    transition: stroke-dashoffset 0.1s linear;
+}
+
+.stability-ring span{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(0deg);
+    font-size: 18px;
+    font-weight: bold;
+    color: #f39c12;
+}
+
+/* ============ Boss 血條 ============ */
+.boss-hp-area{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.boss-hp-label{
+    font-size: 16px;
+    white-space: nowrap;
+}
+
+.boss-hp-track{
+    width: 240px;
+    height: 16px;
+    background: #333;
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.boss-hp-bar{
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #e74c3c, #c0392b);
+    border-radius: 99px;
+    transition: width 0.4s ease;
+}
+
+#bossHpText{
+    font-size: 14px;
+    color: #aaa;
+    white-space: nowrap;
+}
+
+/* ============ Combo 目標提示 ============ */
+.combo-hint{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 8px 20px;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.combo-hint-label{
+    color: #aaa;
+    font-size: 14px;
+}
+
+.combo-hint-seq{
+    color: #ffe433;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+.combo-hint-sep{
+    color: #555;
+}
+
+
+@keyframes hitFlash{
+    /*  0：從白色超大瞬間爆出（閃光感）  */
+    0%   {
+        transform: scale(2.2) rotate(-8deg);
+        opacity: 1;
+        color: #ffffff;
+        text-shadow:
+            0 0 30px #fff,
+            0 0 60px #ffe066,
+            0 0 100px #ff9900,
+            6px 6px 0 #7d2b00;
+        filter: brightness(3);
+    }
+    /* 12%：快速收縮到正常大小，顏色轉黃 */
+    12%  {
+        transform: scale(1.0) rotate(3deg);
+        color: #ffe433;
+        text-shadow:
+            0 0 16px #ffcc00,
+            0 0 40px #ff8800,
+            4px 4px 0 #7d4b00;
+        filter: brightness(1.4);
+        opacity: 1;
+    }
+    /* 20%：定格，讓玩家看清楚數字 */
+    20%  {
+        transform: scale(1.05) rotate(0deg);
+        opacity: 1;
+        filter: brightness(1);
+    }
+    /* 65%：還是清楚可見 */
+    65%  {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    /* 100%：往上飄 + 淡出 */
+    100% {
+        opacity: 0;
+        transform: scale(1.1) translateY(-30px);
+        filter: brightness(1);
+    }
+}
+
+.combo-display{
+    font-size: 130px;
+    font-weight: 900;
+    font-style: italic;          /* 斜體更有衝擊感 */
+    color: #ffe433;
+    text-shadow:
+        0 0 16px #ffcc00,
+        0 0 40px #ff8800,
+        4px 4px 0 #7d4b00;
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 10px 0;
+    pointer-events: none;
+}
+
+/* .hit class 觸發完整特效，動畫結束後 JS 會移除 class */
+.combo-display.hit{
+    animation: hitFlash 0.9s ease-out forwards;
+}
+
+/* ===== Boss 畫面佈局（左攝影機 + 右 Boss）===== */
+.boss-layout{
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 40px;
+    padding: 30px 20px;
+}
+
+.boss-camera{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.boss-camera img{
+    width: 400px;
+    border-radius: 10px;
+}
+
+.boss-panel{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+#bossArea{
+    background: #111;
+    color: white;
+    min-height: 100vh;
+}
+
+/* 答錯時顯示正確答案提示 */
+.answer-hint{
+    font-size: 18px;
+    color: #e67e22;
+    min-height: 28px;
+    margin: 4px 0;
+}
+
+
+
+.hidden{
+    display:none !important;
+}
+
+#bossImg{
+    width:300px;
+}
+
+#videoFeed{
+    width:400px;
+    border-radius:10px;
+}

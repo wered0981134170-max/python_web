@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>手勢辨識測試</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+<h1>手勢辨識測試系統</h1>
+
+<div class="container">
+
+<img id="videoFeed" src="/video">
+
+<p id="status">攝影機狀態：未啟動</p>
+
+<button onclick="startCamera()">啟動攝影機</button>
+
+<button onclick="stopCamera()">停止攝影機</button>
+
+</div>
+
+<script src="{{ url_for('static', filename='camera.js') }}"></script>
+
+</body>
+
+</html>

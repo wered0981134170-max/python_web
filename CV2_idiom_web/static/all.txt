@@ -1,0 +1,756 @@
+let bossMode = false
+let answered = false
+let counting = false
+let stableFrames = 0
+let lastGesture = null
+
+let gestureSequence = []
+let lastGestureBoss = null
+const video = document.getElementById("videoFeed")
+const gestureText = document.getElementById("gesture")
+const cdEl = document.getElementById("countdown")
+const resultEl = document.getElementById("result")
+
+window.onload = function(){
+    loadQuestion()
+    setInterval(updateVideo, 50)   // ⭐ 每50ms更新一次（20FPS）
+}
+
+async function updateVideo() {
+    const res  = await fetch("/video_frame")
+    const data = await res.json()
+
+    video.src = "data:image/jpeg;base64," + data.image
+
+    // ⭐ Boss模式：只處理技能
+    if (bossMode) {
+        if (data.gesture) {
+            detectCombo(data.gesture)
+        }
+        return
+    }
+
+    clearHighlight()
+
+    if (answered) return
+
+    if (data.gesture) {
+
+        gestureText.innerText = "偵測手勢: " + data.gesture
+        highlightOption(data.gesture)
+
+        if (data.gesture === lastGesture) {
+
+            stableFrames++
+
+            if (stableFrames > 10 && !counting) {
+                startCountdown(data.gesture)
+            }
+
+        } else {
+
+            lastGesture  = data.gesture
+            stableFrames = 0
+
+            if (counting) {
+                counting = false
+                cdEl.innerText = ""
+            }
+        }
+
+    } else {
+
+        gestureText.innerText = ""
+        lastGesture  = null
+        stableFrames = 0
+
+        if (counting) {
+            counting = false
+            cdEl.innerText = ""
+        }
+    }
+}
+
+
+// ── 提交答案 ─────────────────────────
+async function submitAnswer(gesture) {
+
+    answered = true
+
+    const res  = await fetch("/check_answer/" + gesture)
+    const data = await res.json()
+
+    if (data.correct) {
+
+        resultEl.innerText = "✅ 正確!"
+        resultEl.className = "correct"
+
+        setTimeout(() => {
+            resultEl.innerText = ""
+            startBossBattle()
+        }, 1000)
+
+    } else {
+
+        resultEl.innerText = "❌ 錯誤!"
+        resultEl.className = "wrong"
+
+        setTimeout(() => {
+            resultEl.innerText = ""
+            resetGestureState()   // ⭐補這行（避免卡死）
+            loadQuestion()
+        }, 1500)
+    }
+}
+
+
+// ── Boss開始 ─────────────────────────
+function startBossBattle(){
+
+    bossMode = true
+
+    // ⭐隱藏畫面
+    document.getElementById("quizArea").classList.add("hidden")
+    document.getElementById("cameraArea").classList.add("hidden")
+
+    // ⭐顯示Boss
+    document.getElementById("bossArea").classList.remove("hidden")
+
+    // ⭐初始化
+    document.getElementById("bossImg").src = "/static/boss_idle.png"
+
+    gestureSequence = []
+    lastGestureBoss = null
+
+    // ⭐避免上一題狀態殘留
+    lastGesture = null
+    stableFrames = 0
+    counting = false
+}
+
+
+// ── Boss結束 ─────────────────────────
+function endBossBattle(){
+
+    bossMode = false
+
+    // ⭐顯示回來
+    document.getElementById("quizArea").classList.remove("hidden")
+    document.getElementById("cameraArea").classList.remove("hidden")
+
+    // ⭐隱藏Boss
+    document.getElementById("bossArea").classList.add("hidden")
+
+    // ⭐重置狀態（關鍵）
+    resetGestureState()
+
+    // ⭐確保圖片回復
+    document.getElementById("bossImg").src = "/static/boss_idle.png"
+
+    loadQuestion()
+}
+
+
+// ── 技能 ─────────────────────────
+function activateSkill(type){
+
+    const text = document.getElementById("skillText")
+    const boss = document.getElementById("bossImg")
+
+    if(type === 1){
+        text.innerText = "🔥 火焰斬擊！"
+        boss.src = "/static/boss_hit1.gif"
+    }
+
+    if(type === 2){
+        text.innerText = "⚡ 雷電爆破！"
+        boss.src = "/static/boss_hit2.gif"
+    }
+
+    // ⭐暫停偵測避免重複觸發
+    bossMode = false
+
+    setTimeout(()=>{
+
+        boss.src = "/static/boss_idle.png"
+        endBossBattle()
+
+    },2000)
+}
+
+
+// ── Combo偵測 ─────────────────────────
+function detectCombo(g){
+
+    if(g === lastGestureBoss) return
+
+    lastGestureBoss = g
+
+    gestureSequence.push(g)
+
+    if(gestureSequence.length > 4){
+        gestureSequence.shift()
+    }
+
+    const combo = gestureSequence.join("")
+
+    if(combo === "1234"){
+        activateSkill(1)
+    }
+
+    if(combo === "4321"){
+        activateSkill(2)
+    }
+}
+
+app.js
+
+body{
+    background:#111;
+    color:white;
+    font-family:"Microsoft JhengHei";
+    text-align:center;
+}
+
+.container{
+    display:flex;
+    justify-content:center;
+    gap:40px;
+    margin-top:30px;
+}
+
+.video-area img{
+    width:500px;
+    border-radius:10px;
+}
+
+.quiz-area{
+    width:400px;
+}
+
+.options{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:15px;
+}
+
+.option{
+    font-size:30px;
+    padding:20px;
+    border:none;
+    border-radius:10px;
+    background:#3498db;
+    color:white;
+    cursor:pointer;
+    transition:0.2s;
+}
+
+.option:hover{
+    background:#2980b9;
+}
+
+.option.active{
+    background:#f39c12;
+    transform:scale(1.1);
+}
+
+#countdown{
+    font-size:80px;
+    margin-top:20px;
+    color:#ffcc00;
+}
+
+button{
+    font-size:30px;
+    padding:20px;
+    border:none;
+    border-radius:10px;
+    background:#3498db;
+    color:white;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#2980b9;
+}
+
+#result{
+    font-size:50px;
+    margin-top:20px;
+    font-weight:bold;
+}
+
+.correct{
+    color:#2ecc71;
+}
+
+.wrong{
+    color:#e74c3c;
+}
+
+#bossArea{
+    margin-top:30px;
+}
+
+.hidden{
+    display:none;
+}
+
+#bossImg{
+    width:300px;
+}
+
+#bossArea{
+    margin-top:30px;
+}
+
+.hidden{
+    display:none;
+}
+
+#bossImg{
+    width:300px;
+}
+
+#bossArea{
+    background:black;
+    color:white;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+}
+
+#videoFeed{
+    width: 400px;
+    border-radius: 10px;
+}
+
+style.scc
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+<meta charset="UTF-8">
+<title>AI 成語互動系統</title>
+
+<link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+<h1>AI 成語互動學習</h1>
+
+<div class="container">
+
+    <!-- 🎥 攝影機 -->
+    <div id="cameraArea" class="video-area">
+        <img id="videoFeed">
+    </div>
+
+    <!-- 🧠 題目 -->
+    <div id="quizArea" class="quiz-area">
+
+        <h2 id="question"></h2>
+
+        <div class="options">
+            <button id="opt1" class="option"></button>
+            <button id="opt2" class="option"></button>
+            <button id="opt3" class="option"></button>
+            <button id="opt4" class="option"></button>
+        </div>
+
+        <h1 id="countdown"></h1>
+
+        <h2 id="result"></h2>
+
+        <p id="gesture"></p>
+
+    </div>
+
+</div>
+
+<!-- ⚔️ Boss（只留一個！） -->
+<div id="bossArea" class="hidden">
+
+    <h2>⚔️ 魔王出現！</h2>
+
+    <img id="bossImg" src="/static/boss_idle.png">
+
+    <h3 id="skillText"></h3>
+
+</div>
+
+<script src="/static/app.js"></script>
+
+</body>
+</html>
+
+index.html
+
+from flask import Flask, render_template, jsonify
+import cv2
+import base64
+
+from hand_detector import HandDetector
+from idiom_quiz import new_question
+
+app = Flask(__name__)
+
+detector = HandDetector()
+cap = cv2.VideoCapture(0)
+question = new_question()
+
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+
+@app.route("/get_question")
+def get_question():
+    return jsonify(question)
+
+
+@app.route("/check_answer/<int:gesture>")
+def check_answer(gesture):
+    global question
+
+    # ✅ 先比對，再換題（原本換題在比對前，導致比對到下一題）
+    correct = (gesture == question["correct_index"])
+    correct_answer = question["correct_char"]
+
+    result = {
+        "correct": correct,
+        "correct_answer": correct_answer
+    }
+
+    question = new_question()   # 比對完才換題
+    return jsonify(result)
+
+
+@app.route("/video_frame")
+def video_frame():
+    global cap
+
+    ret, frame = cap.read()
+    if not ret:
+        return ""
+
+    frame = cv2.flip(frame, 1)
+    gesture, frame = detector.detect(frame)
+
+    _, buffer = cv2.imencode('.jpg', frame)
+    jpg_as_text = base64.b64encode(buffer).decode('utf-8')
+
+    return jsonify({
+        "image": jpg_as_text,
+        "gesture": gesture
+    })
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
+app.py
+
+import mediapipe as mp
+from mediapipe.tasks import python
+from mediapipe.tasks.python import vision
+import cv2
+
+class HandDetector:
+
+    def __init__(self):
+
+        base_options = python.BaseOptions(
+            model_asset_path=r"C:\python_web\CV2_idiom_web\b_H\hand_landmarker.task"
+        )
+
+        options = vision.HandLandmarkerOptions(
+            base_options=base_options,
+            num_hands=1,
+            running_mode=vision.RunningMode.VIDEO
+        )
+
+        self.landmarker = vision.HandLandmarker.create_from_options(options)
+        self.timestamp = 0
+
+    def classify_gesture(self, landmarks, hand_label):
+
+        tips = [8,12,16,20]
+        pip = [6,10,14,18]
+
+        count = 0
+
+        for t,p in zip(tips,pip):
+            if landmarks[t].y < landmarks[p].y:
+                count += 1
+
+        if hand_label == "Right":
+            if landmarks[4].x > landmarks[3].x:
+                count += 1
+        else:
+            if landmarks[4].x < landmarks[3].x:
+                count += 1
+
+        return count
+
+    def detect(self, frame):
+
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        mp_image = mp.Image(
+            image_format=mp.ImageFormat.SRGB,
+            data=rgb
+        )
+
+        result = self.landmarker.detect_for_video(mp_image,self.timestamp)
+        self.timestamp += 1
+
+        gesture = None
+
+        if result.hand_landmarks:
+
+            hand = result.hand_landmarks[0]
+            hand_label = result.handedness[0][0].category_name
+
+            gesture = self.classify_gesture(hand,hand_label)
+
+            for lm in hand:
+
+                x = int(lm.x*frame.shape[1])
+                y = int(lm.y*frame.shape[0])
+
+                cv2.circle(frame,(x,y),4,(255,100,0),-1)
+
+        return gesture, frame
+
+hand_detector.py
+
+import random
+from idioms_data import idioms, options_pool
+
+def generate_multiple_choice():
+
+    idiom = random.choice(list(idioms.keys()))
+    pos = random.choice(list(idioms[idiom].keys()))
+
+    correct_char = idiom[pos]
+    question = idiom[:pos] + "＿" + idiom[pos+1:]
+
+    wrong_opts = []
+
+    for lvl_list in idioms[idiom][pos].values():
+        wrong_opts.extend(lvl_list)
+
+    wrong_opts = list(set(wrong_opts))
+
+    while len(wrong_opts) < 3:
+        c = random.choice(options_pool)
+        if c != correct_char and c not in wrong_opts:
+            wrong_opts.append(c)
+
+    wrong_opts = random.sample(wrong_opts,3)
+
+    choices = wrong_opts + [correct_char]
+    random.shuffle(choices)
+
+    return {
+        "mode":"multiple",
+        "idiom":idiom,
+        "question":question,
+        "choices":choices,
+        "correct_char":correct_char,
+        "correct_index":choices.index(correct_char)+1   # 修正
+    }
+
+def new_question():
+    return generate_multiple_choice()
+
+idiom_quiz.py
+
+idioms = {
+
+"怒髮衝冠":{
+    0:{"easy":["努"],"medium":["弩"],"hard":["恕"]},
+    1:{"medium":["髮"]},
+    2:{"easy":["沖"],"medium":["充"]},
+},
+
+"四面楚歌":{
+    0:{"easy":["西"],"medium":["死"],"hard":["匹"]},
+    2:{"easy":["處"],"hard":["濋"]},
+    3:{"easy":["哥"]}
+},
+
+"畫蛇添足":{
+    0:{"easy":["劃"],"medium":["晝"],"hard":["書"]},
+    1:{"easy":["它"]},
+    2:{"easy":["填"],"medium":["婖"]}
+},
+
+"守株待兔":{
+    0:{"easy":["首"],"medium":["宋"],"hard":["宇"]},
+    1:{"easy":["珠"],"medium":["殊"],"hard":["朱"]},
+    2:{"hard":["侍"]},
+    3:{"medium":["免"]}
+},
+
+"自相矛盾":{
+    0:{"easy":["白"],"medium":["目"],"hard":["由"]},
+    1:{"medium":["湘"],"hard":["箱"]},
+    2:{"easy":["予"],"medium":["茅"]},
+    3:{"easy":["頓"],"medium":["鈍"],"hard":["遁"]}
+},
+
+"一鼓作氣":{
+    1:{"easy":["股"]},
+    2:{"easy":["做"]},
+    3:{"easy":["汽"],"medium":["棄"]}
+},
+
+"亡羊補牢":{
+    0:{"easy":["忘"],"medium":["芒"]},
+    2:{"easy":["捕"]}
+},
+
+"破釜沉舟":{
+    0:{"easy":["坡"],"medium":["波"],"hard":["披"]},
+    1:{"easy":["斧"]},
+    2:{"medium":["沈"]}
+},
+
+"對症下藥":{
+    0:{"easy":["隊"],"hard":["對"]},
+    1:{"easy":["証"],"medium":["政"]}
+},
+
+"刻苦耐勞":{
+    0:{"easy":["克"],"medium":["剋"]},
+    1:{"easy":["奈"]},
+    2:{"easy":["牢"]}
+},
+
+"一目了然":{
+    1:{"easy":["自"],"medium":["且"],"hard":["日"]},
+    2:{"easy":["瞭"]},
+    3:{"easy":["燃"],"hard":["染"]}
+},
+
+"一箭雙鵰":{
+    1:{"easy":["剪"],"medium":["劍"]},
+    2:{"hard":["爽"]},
+    3:{"easy":["雕"],"medium":["凋"]}
+},
+
+"三思而行":{
+    1:{"easy":["恩"]}
+},
+
+"五花八門":{
+    1:{"medium":["化"]},
+    2:{"easy":["人"],"medium":["入"]},
+    3:{"hard":["們"]}
+},
+
+"虎視眈眈":{
+    1:{"hard":["示"]},
+    2:{"easy":["耽"]},
+    3:{"easy":["耽"]}
+},
+
+"魚目混珠":{
+    0:{"easy":["漁"]},
+    1:{"easy":["自"],"medium":["且"],"hard":["日"]},
+    2:{"hard":["渾"]},
+    3:{"easy":["株"],"hard":["誅"]}
+},
+
+"青出於藍":{
+    0:{"easy":["清"]},
+    2:{"hard":["于"]},
+    3:{"medium":["籃"]}
+},
+
+"百發百中":{
+    0:{"easy":["白"]},
+    1:{"medium":["廢"]},
+    2:{"easy":["白"]},
+    3:{"easy":["忠"],"medium":["仲"]}
+},
+
+"當機立斷":{
+    0:{"easy":["檔"],"medium":["擋"]},
+    1:{"easy":["基"],"hard":["奇"]},
+    3:{"easy":["段"],"hard":["鍛"]}
+},
+
+"半途而廢":{
+    0:{"easy":["牛"],"hard":["丰"]},
+    1:{"easy":["圖"],"medium":["徒"],"hard":["徙"]},
+    3:{"easy":["費"]}
+},
+
+"水落石出":{
+    1:{"easy":["洛"],"medium":["絡"],"hard":["駱"]},
+    2:{"easy":["右"]}
+},
+
+"手忙腳亂":{
+    1:{"easy":["茫"],"medium":["盲"],"hard":["芒"]},
+    3:{"medium":["辭"]}
+},
+
+"心驚膽跳":{
+    0:{"easy":["必"]},
+    2:{"easy":["擔"],"hard":["憚"]},
+    3:{"medium":["挑"],"hard":["眺"]}
+},
+
+"名列前茅":{
+    0:{"easy":["各"],"hard":["洛"]},
+    1:{"medium":["烈"],"hard":["裂"]},
+    2:{"medium":["煎"],"hard":["箭"]},
+    3:{"medium":["矛"]}
+},
+
+"全神貫注":{
+    0:{"easy":["金"]},
+    1:{"easy":["伸"],"hard":["紳"]},
+    2:{"easy":["串"],"medium":["慣"],"hard":["摜"]},
+    3:{"easy":["住"],"medium":["註"],"hard":["柱"]}
+},
+
+"按部就班":{
+    0:{"easy":["案"],"medium":["暗"],"hard":["黯"]},
+    1:{"easy":["陪"],"medium":["步"],"hard":["倍"]},
+    3:{"easy":["般"],"medium":["斑"],"hard":["搬"]}
+},
+
+"前功盡棄":{
+    0:{"easy":["剪"],"hard":["煎"]},
+    1:{"easy":["工"],"medium":["攻"],"hard":["公"]},
+    2:{"easy":["儘"],"medium":["進"],"hard":["禁"]},
+    3:{"easy":["氣"]}
+},
+
+"持之以恆":{
+    0:{"hard":["待"]},
+    1:{"easy":["支"]},
+    2:{"easy":["已"],"medium":["己"],"hard":["乙"]},
+    3:{"easy":["衡"]}
+},
+
+"如魚得水":{
+    0:{"hard":["奴"]},
+    1:{"easy":["漁"]},
+    2:{"easy":["德"]}
+}
+
+}
+options_pool = list("家國山水風雲花草人口手足心肝腦頭耳目鼻口天地日月星空海河湖江田土木火金石")
+
+idioms_data.py

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+<meta charset="UTF-8">
+<title>AI 成語互動系統</title>
+
+<link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+<h1>AI 成語互動學習</h1>
+
+<!-- 📊 答題進度條 -->
+<div id="progressArea">
+    <div class="progress-label">
+        <span>進度</span>
+        <span id="progressText">第 1 / 10 題</span>
+    </div>
+    <div class="progress-track">
+        <div id="progressBar" class="progress-bar"></div>
+    </div>
+</div>
+
+<!-- ===== 主畫面：攝影機 + 題目（答題時顯示）===== -->
+<div class="container" id="quizContainer">
+
+    <!-- 🎥 攝影機 -->
+    <div id="cameraArea" class="video-area">
+        <img id="videoFeed">
+        <!-- 手勢穩定進度環 -->
+        <div id="stabilityRing" class="stability-ring hidden">
+            <svg viewBox="0 0 60 60">
+                <circle class="ring-bg" cx="30" cy="30" r="25"/>
+                <circle id="ringArc" class="ring-arc" cx="30" cy="30" r="25"/>
+            </svg>
+            <span id="ringGesture"></span>
+        </div>
+    </div>
+
+    <!-- 🧠 題目 -->
+    <div id="quizArea" class="quiz-area">
+
+        <h2 id="question"></h2>
+
+        <div class="options">
+            <button id="opt1" class="option"></button>
+            <button id="opt2" class="option"></button>
+            <button id="opt3" class="option"></button>
+            <button id="opt4" class="option"></button>
+        </div>
+
+        <h2 id="result"></h2>
+        <p  id="answerHint" class="answer-hint"></p>
+        <p  id="gesture"></p>
+
+    </div>
+
+</div>
+
+<!-- ===== Boss 攻擊畫面（答題後短暫顯示，攝影機維持開啟）===== -->
+<div id="bossArea" class="hidden">
+
+    <div class="boss-layout">
+
+        <!-- 左：攝影機（Boss 模式也開著）-->
+        <div class="video-area boss-camera">
+            <img id="videoFeedBoss">
+            <!-- Combo 目標提示 -->
+            <div class="combo-hint">
+                <span class="combo-hint-label">攻擊咒語：</span>
+                <span class="combo-hint-seq">🔥 1 → 2 → 3 → 4</span>
+                <span class="combo-hint-sep"> ／ </span>
+                <span class="combo-hint-seq">⚡ 4 → 3 → 2 → 1</span>
+            </div>
+        </div>
+
+        <!-- 右：Boss + 血條 -->
+        <div class="boss-panel">
+
+            <!-- Boss 血條 -->
+            <div class="boss-hp-area">
+                <span class="boss-hp-label">👹 魔王 HP</span>
+                <div class="boss-hp-track">
+                    <div id="bossHpBar" class="boss-hp-bar"></div>
+                </div>
+                <span id="bossHpText">10 / 10</span>
+            </div>
+
+            <img id="bossImg" src="/static/boss_idle.png">
+
+            <div id="comboDisplay" class="combo-display"></div>
+
+            <h3 id="skillText"></h3>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script src="/static/app.js"></script>
+
+</body>
+</html>
